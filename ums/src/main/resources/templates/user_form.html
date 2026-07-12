@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>User Form</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<div class="container">
+    <h1 th:text="${user.id == null ? 'Create User' : 'Edit User'}"></h1>
+    
+    <form th:action="@{/user/save}" th:object="${user}" method="post">
+        <input type="hidden" th:field="*{id}" />
+        
+        <div style="margin-bottom: 1rem;">
+            <label>Login:</label>
+            <input type="text" th:field="*{login}" required style="width: 100%; padding: 0.5rem;" />
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+            <label>Password:</label>
+            <input type="password" th:field="*{passwd}" th:required="${user.id == null}" style="width: 100%; padding: 0.5rem;" />
+            <small th:if="${user.id != null}">Leave blank to keep current password</small>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+            <label>Role:</label>
+            <select th:field="*{authRole}" style="width: 100%; padding: 0.5rem;">
+                <option value="USER">USER</option>
+                <option value="ADMIN">ADMIN</option>
+            </select>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+            <label>Enabled:</label>
+            <input type="checkbox" th:field="*{enabled}" />
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn-pill" style="background: #4CAF50; color: white;">Save</button>
+            <a th:href="@{/main}" class="btn-pill" style="background: #ccc; color: black; text-decoration: none; text-align: center;">Cancel</a>
+        </div>
+    </form>
+</div>
+
+</body>
+</html>

@@ -7,10 +7,50 @@
 </head>
 <body>
 
-<div class="container">
-    <h1>Success!</h1>
-    <p>You are authenticated.</p>
-    <form th:action="@{/logout}" method="post">
+<div class="container" style="max-width: 90%; margin: 2rem auto;">
+    <h1>Main Screen</h1>
+    
+    <div th:if="${isAdmin}">
+        <h2>User Management</h2>
+        <a th:href="@{/user/create}" class="btn-pill" style="display: inline-block; margin-bottom: 1rem; background: #4CAF50; color: white; text-decoration: none;">Create New User</a>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ID</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Login</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Role</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Enabled</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="u : ${users.content}">
+                    <td style="border: 1px solid #ddd; padding: 8px;" th:text="${u.id}"></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;" th:text="${u.login}"></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;" th:text="${u.authRole}"></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;" th:text="${u.enabled}"></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">
+                        <a th:href="@{/user/edit/{id}(id=${u.id})}" style="color: blue;">Edit</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Pagination -->
+        <div th:if="${users.totalPages > 1}">
+            <span th:each="i : ${#numbers.sequence(0, users.totalPages - 1)}">
+                <a th:href="@{/main(page=${i})}" th:text="${i + 1}" 
+                   th:style="${users.number == i} ? 'font-weight: bold; margin: 0 5px;' : 'margin: 0 5px;'"></a>
+            </span>
+        </div>
+    </div>
+
+    <div th:unless="${isAdmin}">
+        <p>You are authenticated.</p>
+    </div>
+    
+    <form th:action="@{/logout}" method="post" style="margin-top: 2rem;">
         <button type="submit" class="btn-pill" style="background: #ff4d4d; color: white; width: auto; padding: 0.8rem 1.5rem;">
             Logout
         </button>
