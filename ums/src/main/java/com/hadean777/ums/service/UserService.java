@@ -1,12 +1,14 @@
 package com.hadean777.ums.service;
 
-import com.hadean777.ums.entity.User;
 import com.hadean777.ums.repository.UserRepository;
-import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
 
     private final UserRepository repository;
 
@@ -14,5 +16,16 @@ public class UserService {
         this.repository = repository;
     }
 
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return repository.findByLogin(username)
+                .map(user -> User.builder()
+                        .username(user.getLogin())
+                        .password(user.getPasswd())
+                        .roles(user.getAuthRole())
+                        .disabled(!user.getEnabled())
+                        .build())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    }
 
 }

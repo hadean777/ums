@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 
 
 @Entity
-@Table(name = "user")
+@Table(name = "users")
 public class User {
 
     @Id
@@ -17,6 +17,9 @@ public class User {
 
     @Column(name = "passwd", nullable = false)
     private String passwd;
+
+    @Column(name = "auth_role", nullable = false)
+    private String authRole;
 
     @Column(name = "enabled", nullable = false)
     private Boolean enabled;
@@ -44,6 +47,14 @@ public class User {
 
     public void setPasswd(String passwd) {
         this.passwd = passwd;
+    }
+
+    public String getAuthRole() {
+        return authRole;
+    }
+
+    public void setAuthRole(String authRole) {
+        this.authRole = authRole;
     }
 
     public Boolean getEnabled() {

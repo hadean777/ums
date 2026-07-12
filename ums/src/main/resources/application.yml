@@ -1,8 +1,10 @@
 spring:
+  config:
+    import: optional:file:../config/ums.properties
   datasource:
-    url: jdbc:postgresql://localhost:5432/login_db
-    username: username
-    password: password
+    url: ${spring.datasource.url}
+    username: ${spring.datasource.username}
+    password: ${spring.datasource.password}
     driver-class-name: org.postgresql.Driver
 
   jpa:
