@@ -43,6 +43,10 @@ public class UserService implements UserDetailsService {
         return repository.findById(id);
     }
 
+    public Optional<User> getUserByLogin(String login) {
+        return repository.findByLogin(login);
+    }
+
     public void saveUser(User user) {
         if (user.getPasswd() != null && !user.getPasswd().isEmpty()) {
             if (!user.getPasswd().startsWith("$2a$")) {

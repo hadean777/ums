@@ -1,6 +1,7 @@
 package com.hadean777.ums.controller;
 
 import com.hadean777.ums.entity.User;
+import com.hadean777.ums.service.DeviceService;
 import com.hadean777.ums.service.UserService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
@@ -13,9 +14,11 @@ import org.springframework.web.bind.annotation.*;
 public class WebController {
 
     private final UserService userService;
+    private final DeviceService deviceService;
 
-    public WebController(UserService userService) {
+    public WebController(UserService userService, DeviceService deviceService) {
         this.userService = userService;
+        this.deviceService = deviceService;
     }
 
     @GetMapping("/login")
@@ -35,8 +38,23 @@ public class WebController {
             model.addAttribute("isAdmin", true);
         } else {
             model.addAttribute("isAdmin", false);
+            userService.getUserByLogin(authentication.getName()).ifPresent(user -> {
+                model.addAttribute("devices", deviceService.getDevicesForUser(user.getId()));
+            });
         }
         return "main";
+    }
+
+    @PostMapping("/device/create")
+    public String createDevice(Authentication authentication) throws Exception {
+        userService.getUserByLogin(authentication.getName()).ifPresent(user -> {
+            try {
+                deviceService.generateNewDevice(user.getId());
+            } catch (Exception e) {
+                // Ignore for now
+            }
+        });
+        return "redirect:/main";
     }
 
     @GetMapping("/user/create")

@@ -48,6 +48,29 @@
 
     <div th:unless="${isAdmin}">
         <p>You are authenticated.</p>
+
+        <h2>Your Devices</h2>
+        <form th:action="@{/device/create}" method="post">
+            <button type="submit" class="btn-pill" style="background: #4CAF50; color: white; border: none; padding: 0.5rem 1rem; cursor: pointer;">New Device</button>
+        </form>
+
+        <table th:if="${devices != null && !devices.isEmpty()}" style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ID</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Description</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Expires At</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="d : ${devices}">
+                    <td style="border: 1px solid #ddd; padding: 8px;" th:text="${d.id}"></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;" th:text="${d.description}"></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;" th:text="${#dates.format(d.expiresAt, 'yyyy-MM-dd HH:mm')}"></td>
+                </tr>
+            </tbody>
+        </table>
+        <p th:if="${devices == null || devices.isEmpty()}">No devices found.</p>
     </div>
     
     <form th:action="@{/logout}" method="post" style="margin-top: 2rem;">
