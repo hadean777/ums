@@ -1,10 +1,6 @@
 package com.hadean777.ums.entity;
 
-import com.hadean777.ums.util.Inet6AddressConverter;
 import jakarta.persistence.*;
-
-import java.net.Inet6Address;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "device", indexes = {
@@ -34,10 +30,6 @@ public class Device {
     @Column(name = "prefix_length", nullable = false)
     private Short prefixLength = 128;
 
-//    @Convert(converter = Inet6AddressConverter.class)
-//    @Column(name = "ip_address", columnDefinition = "INET")
-//    private Inet6Address ipAddress;
-
     @Column(name = "created_at", nullable = false)
     private Long createdAt;
 
@@ -49,6 +41,27 @@ public class Device {
 
     @Column(name = "enabled", nullable = false)
     private Boolean enabled = true;
+
+    @Column(name = "ip_prefix_16", nullable = false)
+    private Integer ipPrefix16;
+
+    @Column(name = "ip_prefix_32", nullable = false)
+    private Integer ipPrefix32;
+
+    @Column(name = "ip_prefix_32_48", nullable = false)
+    private Integer ipPrefix32_48;
+
+    @Column(name = "ip_prefix_48_56", nullable = false)
+    private Integer ipPrefix48_56;
+
+    @Column(name = "ip_prefix_56_64", nullable = false)
+    private Integer ipPrefix56_64;
+
+    @Column(name = "ip_prefix_slaac", nullable = false)
+    private Long ipPrefixSlaac;
+
+    @Column(name = "ip_address", nullable = false, length = 40)
+    private String ipAddress;
 
 
 
@@ -102,14 +115,6 @@ public class Device {
         this.prefixLength = prefixLength;
     }
 
-//    public Inet6Address getIpAddress() {
-//        return ipAddress;
-//    }
-//
-//    public void setIpAddress(Inet6Address ipAddress) {
-//        this.ipAddress = ipAddress;
-//    }
-
     public Long getCreatedAt() {
         return createdAt;
     }
@@ -141,4 +146,61 @@ public class Device {
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
     }
+
+    public Integer getIpPrefix16() {
+        return ipPrefix16;
+    }
+
+    public void setIpPrefix16(Integer ipPrefix16) {
+        this.ipPrefix16 = ipPrefix16;
+    }
+
+    public Integer getIpPrefix32() {
+        return ipPrefix32;
+    }
+
+    public void setIpPrefix32(Integer ipPrefix32) {
+        this.ipPrefix32 = ipPrefix32;
+    }
+
+    public Integer getIpPrefix32_48() {
+        return ipPrefix32_48;
+    }
+
+    public void setIpPrefix32_48(Integer ipPrefix32_48) {
+        this.ipPrefix32_48 = ipPrefix32_48;
+    }
+
+    public Integer getIpPrefix48_56() {
+        return ipPrefix48_56;
+    }
+
+    public void setIpPrefix48_56(Integer ipPrefix48_56) {
+        this.ipPrefix48_56 = ipPrefix48_56;
+    }
+
+    public Integer getIpPrefix56_64() {
+        return ipPrefix56_64;
+    }
+
+    public void setIpPrefix56_64(Integer ipPrefix56_64) {
+        this.ipPrefix56_64 = ipPrefix56_64;
+    }
+
+    public Long getIpPrefixSlaac() {
+        return ipPrefixSlaac;
+    }
+
+    public void setIpPrefixSlaac(Long ipPrefixSlaac) {
+        this.ipPrefixSlaac = ipPrefixSlaac;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
 }
