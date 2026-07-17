@@ -2,6 +2,8 @@ package com.hadean777.ums.entity;
 
 import jakarta.persistence.*;
 
+import static com.hadean777.ums.Constants.DEFAULT_PREFIX_LENGTH;
+
 @Entity
 @Table(name = "device", indexes = {
         @Index(name = "ix_fk_device_user", columnList = "user_id"),
@@ -28,7 +30,7 @@ public class Device {
     private String privateKey;
 
     @Column(name = "prefix_length", nullable = false)
-    private Short prefixLength = 128;
+    private Short prefixLength = DEFAULT_PREFIX_LENGTH;
 
     @Column(name = "created_at", nullable = false)
     private Long createdAt;

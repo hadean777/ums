@@ -1,17 +1,18 @@
 package com.hadean777.ums.service;
 
 import com.hadean777.ums.entity.Device;
+import com.hadean777.ums.model.Ip;
 import com.hadean777.ums.repository.DeviceRepository;
 import org.springframework.stereotype.Service;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
-import static com.hadean777.ums.Constants.ONE_YEAR_MILLIS;
+import static com.hadean777.ums.Constants.*;
 
 @Service
 public class DeviceService {
@@ -23,53 +24,83 @@ public class DeviceService {
         this.deviceRepository = deviceRepository;
     }
 
-    public Device generateNewDevice(Long userId) throws Exception {
+    public void generateNewDevice(Long userId) throws Exception {
         Device device = new Device();
 
         //TODO: this is sample version. Need to be completed correctly.
+        final short prefixLength = DEFAULT_PREFIX_LENGTH;
         final long now = new Date().getTime();
         final long expireTime = now + ONE_YEAR_MILLIS;
         final String description = "Test description for user=" + userId + " at time " + now;
         final String publicKey = "PUBLIC_KEY=" + now;
         final String privateKey = "PRIVATE_KEY=" + now;
-        Integer prefix16 = 0x2001;
-        Integer prefix32 = 0x9000;
-        Integer prefix32_48 = 0x1234;
-        Integer prefix48_56 = 0x56;
-        Integer prefix56_64 = 0x64;
-        Long slaac = 0x88881123456789abL;
 
-        final Inet6Address ipAddress = convertToInet6Address(
-                prefix16,
-                prefix32,
-                prefix32_48,
-                prefix48_56,
-                prefix56_64,
-                slaac);
-
+        Ip ip = generateIp(prefixLength);
 
         device.setUserId(userId);
         device.setDescription(description);
         device.setPublicKey(publicKey);
         device.setPrivateKey(privateKey);
-        device.setIpPrefix16(prefix16);
-        device.setIpPrefix32(prefix32);
-        device.setIpPrefix32_48(prefix32_48);
-        device.setIpPrefix48_56(prefix48_56);
-        device.setIpPrefix56_64(prefix56_64);
-        device.setIpPrefixSlaac(slaac);
-        device.setIpAddress(ipAddress.getHostAddress());
+        device.setPrefixLength(prefixLength);
+        device.setIpPrefix16(ip.getIpPrefix16());
+        device.setIpPrefix32(ip.getIpPrefix32());
+        device.setIpPrefix32_48(ip.getIpPrefix32_48());
+        device.setIpPrefix48_56(ip.getIpPrefix48_56());
+        device.setIpPrefix56_64(ip.getIpPrefix56_64());
+        device.setIpPrefixSlaac(ip.getIpPrefixSlaac());
+        device.setIpAddress(ip.getIpAddress());
         device.setCreatedAt(now);
         device.setUpdatedAt(now);
         device.setExpiresAt(expireTime);
 
         deviceRepository.save(device);
-
-        return device;
     }
 
     public List<Device> getDevicesForUser(Long userId) {
         return deviceRepository.findByUserId(userId);
+    }
+
+    private Ip generateIp(Short prefixLength) {
+        Ip ip = new Ip();
+
+        final int prefix16 = GLOBAL_PREFIX_16;
+        int prefix32 = START_PREFIX_128;
+        if (prefixLength == 64) {
+            prefix32 = START_PREFIX_64;
+        } else if (prefixLength == 56) {
+            prefix32 = START_PREFIX_56;
+        } else if (prefixLength == 48) {
+            prefix32 = START_PREFIX_48;
+        } else if (prefixLength == 32) {
+            prefix32 = START_PREFIX_32;
+        }
+
+        Random rand = new Random();
+
+        prefix32 = prefix32 + rand.nextInt(DEFAULT_PREFIX_32_LIMIT);
+        final int prefix32_48 = rand.nextInt(WORD_LIMIT);
+        final int prefix48_56 = rand.nextInt(BYTE_LIMIT);
+        final int prefix56_64 = rand.nextInt(BYTE_LIMIT);
+        final long slaac = rand.nextLong();
+
+        final String ipAddress = convertToInet6Address(
+                prefix16,
+                prefix32,
+                prefix32_48,
+                prefix48_56,
+                prefix56_64,
+                slaac).getHostAddress();
+
+        ip.setPrefixLength(prefixLength);
+        ip.setIpPrefix16(prefix16);
+        ip.setIpPrefix32(prefix32);
+        ip.setIpPrefix32_48(prefix32_48);
+        ip.setIpPrefix48_56(prefix48_56);
+        ip.setIpPrefix56_64(prefix56_64);
+        ip.setIpPrefixSlaac(slaac);
+        ip.setIpAddress(ipAddress);
+
+        return ip;
     }
 
     private Inet6Address convertToInet6Address(Integer prefix16,
