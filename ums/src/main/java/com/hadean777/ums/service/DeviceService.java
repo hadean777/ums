@@ -4,6 +4,7 @@ import com.hadean777.ums.entity.Device;
 import com.hadean777.ums.model.Ip;
 import com.hadean777.ums.repository.DeviceRepository;
 import org.springframework.stereotype.Service;
+import com.hadean777.ums.service.WireGuardKeyService;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -18,10 +19,12 @@ import static com.hadean777.ums.Constants.*;
 public class DeviceService {
 
     private final DeviceRepository deviceRepository;
+    private final WireGuardKeyService wireGuardKeyService;
 
 
-    public DeviceService(DeviceRepository deviceRepository) {
+    public DeviceService(DeviceRepository deviceRepository, WireGuardKeyService wireGuardKeyService) {
         this.deviceRepository = deviceRepository;
+        this.wireGuardKeyService = wireGuardKeyService;
     }
 
     public void generateNewDevice(Long userId) throws Exception {
@@ -32,8 +35,10 @@ public class DeviceService {
         final long now = new Date().getTime();
         final long expireTime = now + ONE_YEAR_MILLIS;
         final String description = "Test description for user=" + userId + " at time " + now;
-        final String publicKey = "PUBLIC_KEY=" + now;
-        final String privateKey = "PRIVATE_KEY=" + now;
+        
+        WireGuardKeyService.WireGuardKeyPair keyPair = wireGuardKeyService.generateKeyPair();
+        final String publicKey = keyPair.getPublicKey();
+        final String privateKey = keyPair.getPrivateKey();
 
         Ip ip = generateIp(prefixLength);
 
