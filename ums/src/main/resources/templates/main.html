@@ -59,14 +59,22 @@
                 <tr style="background-color: #f2f2f2;">
                     <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ID</th>
                     <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Description</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">IP Address</th>
                     <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Expires At</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Enabled</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <tr th:each="d : ${devices}">
                     <td style="border: 1px solid #ddd; padding: 8px;" th:text="${d.id}"></td>
                     <td style="border: 1px solid #ddd; padding: 8px;" th:text="${d.description}"></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;" th:text="${d.ipAddress}"></td>
                     <td style="border: 1px solid #ddd; padding: 8px;" th:text="${#dates.format(d.expiresAt, 'yyyy-MM-dd HH:mm')}"></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;" th:text="${d.enabled}"></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">
+                        <a th:href="@{/device/edit/{id}(id=${d.id})}" style="color: blue;">Edit</a>
+                    </td>
                 </tr>
             </tbody>
         </table>

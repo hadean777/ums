@@ -65,6 +65,19 @@ public class DeviceService {
         return deviceRepository.findByUserId(userId);
     }
 
+    public void updateDevice(Long deviceId, String description, Boolean enabled) {
+        deviceRepository.findById(deviceId).ifPresent(device -> {
+            device.setDescription(description);
+            device.setEnabled(enabled);
+            device.setUpdatedAt(new Date().getTime());
+            deviceRepository.save(device);
+        });
+    }
+
+    public java.util.Optional<Device> getDeviceById(Long deviceId) {
+        return deviceRepository.findById(deviceId);
+    }
+
     private Ip generateIp(Short prefixLength) {
         Ip ip = new Ip();
 

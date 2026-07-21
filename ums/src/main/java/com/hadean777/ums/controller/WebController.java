@@ -57,6 +57,18 @@ public class WebController {
         return "redirect:/main";
     }
 
+    @GetMapping("/device/edit/{id}")
+    public String editDeviceForm(@PathVariable Long id, Model model) {
+        deviceService.getDeviceById(id).ifPresent(device -> model.addAttribute("device", device));
+        return "device_form";
+    }
+
+    @PostMapping("/device/save")
+    public String saveDevice(@ModelAttribute com.hadean777.ums.entity.Device device) {
+        deviceService.updateDevice(device.getId(), device.getDescription(), device.getEnabled());
+        return "redirect:/main";
+    }
+
     @GetMapping("/user/create")
     public String createUserForm(Model model) {
         model.addAttribute("user", new User());
