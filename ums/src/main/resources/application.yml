@@ -18,6 +18,11 @@ spring:
 server:
   port: 37889
 
+wg:
+  server:
+    endpoint: ${wg.server.endpoint}
+    public-key: ${wg.server.public-key}
+
 logging:
   level:
     org.springframework.security: DEBUG

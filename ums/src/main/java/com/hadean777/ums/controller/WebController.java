@@ -3,6 +3,9 @@ package com.hadean777.ums.controller;
 import com.hadean777.ums.entity.User;
 import com.hadean777.ums.service.DeviceService;
 import com.hadean777.ums.service.UserService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -85,6 +88,30 @@ public class WebController {
     public String editUserForm(@PathVariable Long id, Model model) {
         userService.getUserById(id).ifPresent(user -> model.addAttribute("user", user));
         return "user_form";
+    }
+
+    @GetMapping("/device/config/{id}")
+    public ResponseEntity<byte[]> getDeviceConfig(@PathVariable Long id, Authentication authentication) {
+        return deviceService.getDeviceById(id)
+                .map(device -> {
+                    // Check if the user is an admin or the owner of the device
+                    boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+                    boolean isOwner = userService.getUserByLogin(authentication.getName())
+                            .map(user -> user.getId().equals(device.getUserId()))
+                            .orElse(false);
+
+                    if (isAdmin || isOwner) {
+                        String config = deviceService.generateDeviceConfig(device);
+                        byte[] configBytes = config.getBytes();
+                        return ResponseEntity.ok()
+                                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"wg-config-" + id + ".conf\"")
+                                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                                .body(configBytes);
+                    } else {
+                        return ResponseEntity.status(403).<byte[]>build();
+                    }
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/")

@@ -1,13 +1,20 @@
 package com.hadean777.ums.service;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.Security;
 import java.util.Base64;
 
 @Service
-public class WireGuardKeyService {
+public class WireGuardService {
+
+    @Value("${wg.server.endpoint}")
+    private String serverEndpoint;
+
+    @Value("${wg.server.public-key}")
+    private String serverPublicKey;
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -44,5 +51,13 @@ public class WireGuardKeyService {
         String privateKey = Base64.getEncoder().encodeToString(privateKeyParams.getEncoded());
 
         return new WireGuardKeyPair(publicKey, privateKey);
+    }
+
+    public String getServerEndpoint() {
+        return serverEndpoint;
+    }
+
+    public String getServerPublicKey() {
+        return serverPublicKey;
     }
 }

@@ -4,7 +4,6 @@ import com.hadean777.ums.entity.Device;
 import com.hadean777.ums.model.Ip;
 import com.hadean777.ums.repository.DeviceRepository;
 import org.springframework.stereotype.Service;
-import com.hadean777.ums.service.WireGuardKeyService;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -19,12 +18,12 @@ import static com.hadean777.ums.Constants.*;
 public class DeviceService {
 
     private final DeviceRepository deviceRepository;
-    private final WireGuardKeyService wireGuardKeyService;
+    private final WireGuardService wireGuardService;
 
 
-    public DeviceService(DeviceRepository deviceRepository, WireGuardKeyService wireGuardKeyService) {
+    public DeviceService(DeviceRepository deviceRepository, WireGuardService wireGuardService) {
         this.deviceRepository = deviceRepository;
-        this.wireGuardKeyService = wireGuardKeyService;
+        this.wireGuardService = wireGuardService;
     }
 
     public void generateNewDevice(Long userId) throws Exception {
@@ -36,7 +35,7 @@ public class DeviceService {
         final long expireTime = now + ONE_YEAR_MILLIS;
         final String description = "Test description for user=" + userId + " at time " + now;
         
-        WireGuardKeyService.WireGuardKeyPair keyPair = wireGuardKeyService.generateKeyPair();
+        WireGuardService.WireGuardKeyPair keyPair = wireGuardService.generateKeyPair();
         final String publicKey = keyPair.getPublicKey();
         final String privateKey = keyPair.getPrivateKey();
 
@@ -76,6 +75,19 @@ public class DeviceService {
 
     public java.util.Optional<Device> getDeviceById(Long deviceId) {
         return deviceRepository.findById(deviceId);
+    }
+
+    public String generateDeviceConfig(Device device) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[Interface]\n");
+        sb.append("PrivateKey = ").append(device.getPrivateKey()).append("\n");
+        sb.append("Address = ").append(device.getIpAddress()).append("/").append(device.getPrefixLength()).append("\n");
+        sb.append("\n");
+        sb.append("[Peer]\n");
+        sb.append("PublicKey = ").append(wireGuardService.getServerPublicKey()).append("\n");
+        sb.append("Endpoint = ").append(wireGuardService.getServerEndpoint()).append("\n");
+        sb.append("AllowedIPs = ::/0\n");
+        return sb.toString();
     }
 
     private Ip generateIp(Short prefixLength) {
