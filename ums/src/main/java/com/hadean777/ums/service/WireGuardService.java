@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import java.security.Security;
 import java.util.Base64;
 
+import static com.hadean777.ums.Constants.WG_INTERFACE;
+
 @Service
 public class WireGuardService {
 
@@ -59,5 +61,14 @@ public class WireGuardService {
 
     public String getServerPublicKey() {
         return serverPublicKey;
+    }
+
+    public void addPeer(String publicKey, String allowedIps) throws Exception {
+        ProcessBuilder pb = new ProcessBuilder("wg", "set", WG_INTERFACE, "peer", publicKey, "allowed-ips", allowedIps);
+        Process process = pb.start();
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            throw new RuntimeException("Failed to add peer to WireGuard interface " + WG_INTERFACE + ". Exit code: " + exitCode);
+        }
     }
 }

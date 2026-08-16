@@ -54,7 +54,7 @@ public class WebController {
             try {
                 deviceService.generateNewDevice(user.getId());
             } catch (Exception e) {
-                // Ignore for now
+                e.printStackTrace();
             }
         });
         return "redirect:/main";

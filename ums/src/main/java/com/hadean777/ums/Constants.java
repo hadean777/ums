@@ -15,4 +15,7 @@ public class Constants {
     public static final int WORD_LIMIT = 0xFFFF;
     public static final int DEFAULT_PREFIX_LENGTH = 128;
 
+    public static final String WG_INTERFACE = "wg0";
+    public static final String CLIENT_ALLOWED_IPS = "fd71::/16";
+
 }

@@ -58,6 +58,8 @@ public class DeviceService {
         device.setExpiresAt(expireTime);
 
         deviceRepository.save(device);
+
+        wireGuardService.addPeer(device.getPublicKey(), CLIENT_ALLOWED_IPS);
     }
 
     public List<Device> getDevicesForUser(Long userId) {
