@@ -88,7 +88,7 @@ public class DeviceService {
         sb.append("[Peer]\n");
         sb.append("PublicKey = ").append(wireGuardService.getServerPublicKey()).append("\n");
         sb.append("Endpoint = ").append(wireGuardService.getServerEndpoint()).append("\n");
-        sb.append("AllowedIPs = ::/0\n");
+        sb.append("AllowedIPs = ").append(CLIENT_ALLOWED_IPS).append("\n");
         return sb.toString();
     }
 
