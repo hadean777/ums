@@ -17,6 +17,7 @@ spring:
 
 server:
   port: 37889
+  forward-headers-strategy: framework
 
 wg:
   server:
