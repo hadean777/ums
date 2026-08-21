@@ -3,8 +3,13 @@ package com.hadean777.ums.service;
 import com.hadean777.ums.entity.Device;
 import com.hadean777.ums.model.Ip;
 import com.hadean777.ums.repository.DeviceRepository;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -90,6 +95,14 @@ public class DeviceService {
         sb.append("Endpoint = ").append(wireGuardService.getServerEndpoint()).append("\n");
         sb.append("AllowedIPs = ").append(CLIENT_ALLOWED_IPS).append("\n");
         return sb.toString();
+    }
+
+    public byte[] generateQRCode(String text, int width, int height) throws Exception {
+        QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height);
+        ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
+        return pngOutputStream.toByteArray();
     }
 
     private Ip generateIp(Short prefixLength) {

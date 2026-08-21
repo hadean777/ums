@@ -114,6 +114,34 @@ public class WebController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/device/qrcode/{id}")
+    public ResponseEntity<byte[]> getDeviceQRCode(@PathVariable Long id, Authentication authentication) {
+        return deviceService.getDeviceById(id)
+                .map(device -> {
+                    // Check if the user is an admin or the owner of the device
+                    boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+                    boolean isOwner = userService.getUserByLogin(authentication.getName())
+                            .map(user -> user.getId().equals(device.getUserId()))
+                            .orElse(false);
+
+                    if (isAdmin || isOwner) {
+                        try {
+                            String config = deviceService.generateDeviceConfig(device);
+                            byte[] qrCode = deviceService.generateQRCode(config, 300, 300);
+                            return ResponseEntity.ok()
+                                    .contentType(MediaType.IMAGE_PNG)
+                                    .body(qrCode);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            return ResponseEntity.status(500).<byte[]>build();
+                        }
+                    } else {
+                        return ResponseEntity.status(403).<byte[]>build();
+                    }
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/")
     public String root() {
         return "redirect:/main";

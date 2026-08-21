@@ -1,0 +1,28 @@
+On Debian:
+
+apt-get install wireguard wireguard-tools
+wg --version
+
+echo "net.ipv6.conf.all.forwarding=1" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
+cd /etc/wireguard
+umask 077
+wg genkey | tee server_private.key | wg pubkey > server_public.key
+chmod 600 server_private.key
+
+touch wg0.conf
+# populating wg0.conf:
+[Interface]
+PrivateKey = <content of server_private.key>
+Address = fd71::1/16
+ListenPort = 51820
+SaveConfig = false
+##############################
+
+sudo systemctl enable --now wg-quick@wg0
+sudo wg show
+
+# setting capabilities for users to update wg config:
+sudo setcap cap_net_admin+ep /usr/bin/wg
+
