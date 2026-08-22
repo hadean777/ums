@@ -71,4 +71,13 @@ public class WireGuardService {
             throw new RuntimeException("Failed to add peer to WireGuard interface " + WG_INTERFACE + ". Exit code: " + exitCode);
         }
     }
+
+    public void removePeer(String publicKey) throws Exception {
+        ProcessBuilder pb = new ProcessBuilder("wg", "set", WG_INTERFACE, "peer", publicKey, "remove");
+        Process process = pb.start();
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            throw new RuntimeException("Failed to remove peer from WireGuard interface " + WG_INTERFACE + ". Exit code: " + exitCode);
+        }
+    }
 }

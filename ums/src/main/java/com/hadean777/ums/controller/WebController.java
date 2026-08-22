@@ -1,6 +1,7 @@
 package com.hadean777.ums.controller;
 
 import com.hadean777.ums.entity.User;
+import com.hadean777.ums.model.InternalUserModel;
 import com.hadean777.ums.service.DeviceService;
 import com.hadean777.ums.service.UserService;
 import org.springframework.http.HttpHeaders;
@@ -36,27 +37,29 @@ public class WebController {
     public String main(Model model,
                        Authentication authentication,
                        @RequestParam(defaultValue = "0") int page) {
-        if (authentication != null && authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            model.addAttribute("users", userService.getUsers(PageRequest.of(page, 30)));
-            model.addAttribute("isAdmin", true);
-        } else {
-            model.addAttribute("isAdmin", false);
-            userService.getUserByLogin(authentication.getName()).ifPresent(user -> {
-                model.addAttribute("devices", deviceService.getDevicesForUser(user.getId()));
-            });
+        InternalUserModel userModel = userService.getUserModelByLogin(authentication.getName());
+        if (userModel != null) {
+            boolean isAdmin = userModel.isAdmin();
+            model.addAttribute("isAdmin", isAdmin);
+            if (isAdmin) {
+                model.addAttribute("users", userService.getUsers(PageRequest.of(page, 30)));
+            } else {
+                model.addAttribute("devices", deviceService.getDevicesForUser(userModel.getUserId()));
+            }
         }
         return "main";
     }
 
     @PostMapping("/device/create")
     public String createDevice(Authentication authentication) throws Exception {
-        userService.getUserByLogin(authentication.getName()).ifPresent(user -> {
+        InternalUserModel userModel = userService.getUserModelByLogin(authentication.getName());
+        if (userModel != null) {
             try {
-                deviceService.generateNewDevice(user.getId());
+                deviceService.generateNewDevice(userModel.getUserId());
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        });
+        }
         return "redirect:/main";
     }
 
@@ -69,6 +72,25 @@ public class WebController {
     @PostMapping("/device/save")
     public String saveDevice(@ModelAttribute com.hadean777.ums.entity.Device device) {
         deviceService.updateDevice(device.getId(), device.getDescription(), device.getEnabled());
+        return "redirect:/main";
+    }
+
+    @PostMapping("/device/delete/{id}")
+    public String deleteDevice(@PathVariable Long id, Authentication authentication) throws Exception {
+        deviceService.getDeviceById(id).ifPresent(device -> {
+            boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+            boolean isOwner = userService.getUserByLogin(authentication.getName())
+                    .map(user -> user.getId().equals(device.getUserId()))
+                    .orElse(false);
+
+            if (isAdmin || isOwner) {
+                try {
+                    deviceService.deleteDevice(id);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
         return "redirect:/main";
     }
 

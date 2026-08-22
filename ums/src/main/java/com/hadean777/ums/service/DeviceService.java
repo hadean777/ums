@@ -84,6 +84,21 @@ public class DeviceService {
         return deviceRepository.findById(deviceId);
     }
 
+    public void deleteDevice(Long deviceId) throws Exception {
+        deviceRepository.findById(deviceId).ifPresent(device -> {
+            try {
+                wireGuardService.removePeer(device.getPublicKey());
+            } catch (Exception e) {
+                // Log the error but continue with DB deletion? 
+                // Given the requirement "it should remove record from DB and from Wirgguard", 
+                // if WG fails, maybe we should still try to clean up DB or vice versa.
+                // Usually it's better to try both.
+                e.printStackTrace();
+            }
+            deviceRepository.delete(device);
+        });
+    }
+
     public String generateDeviceConfig(Device device) {
         StringBuilder sb = new StringBuilder();
         sb.append("[Interface]\n");

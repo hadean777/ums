@@ -1,6 +1,7 @@
 package com.hadean777.ums.entity;
 
 import jakarta.persistence.*;
+import java.util.Set;
 
 
 @Entity
@@ -23,6 +24,14 @@ public class User {
 
     @Column(name = "enabled", nullable = false)
     private Boolean enabled;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "USER_PERMISSION",
+            joinColumns = @JoinColumn(name = "USER_ID"),
+            inverseJoinColumns = @JoinColumn(name = "PERMISSION_ID")
+    )
+    private Set<Permission> permissions;
 
 
     public Long getId() {
@@ -63,5 +72,13 @@ public class User {
 
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public Set<Permission> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(Set<Permission> permissions) {
+        this.permissions = permissions;
     }
 }
