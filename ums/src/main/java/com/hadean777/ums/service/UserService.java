@@ -21,10 +21,12 @@ public class UserService implements UserDetailsService {
 
     private final UserRepository repository;
     private final PasswordEncoder passwordEncoder;
+    private final com.hadean777.ums.repository.PermissionRepository permissionRepository;
 
-    public UserService(UserRepository repository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository repository, PasswordEncoder passwordEncoder, com.hadean777.ums.repository.PermissionRepository permissionRepository) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
+        this.permissionRepository = permissionRepository;
     }
 
     @Override
@@ -81,6 +83,20 @@ public class UserService implements UserDetailsService {
             // If editing and password is empty, keep the old one
             repository.findById(user.getId()).ifPresent(existingUser -> user.setPasswd(existingUser.getPasswd()));
         }
+
+        if (user.getId() == null) {
+            // New user, set default permission
+            if (user.getEnabled() == null) {
+                user.setEnabled(true);
+            }
+            if (user.getPermissions() == null || user.getPermissions().isEmpty()) {
+                if (user.getPermissions() == null) {
+                    user.setPermissions(new HashSet<>());
+                }
+                permissionRepository.findById(1L).ifPresent(p -> user.getPermissions().add(p));
+            }
+        }
+
         repository.save(user);
     }
 

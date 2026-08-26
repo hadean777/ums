@@ -15,6 +15,9 @@ public class Permission {
     @Column(name = "NAME")
     private String name;
 
+    @Column(name = "DISPLAY_NAME")
+    private String displayName;
+
     @ManyToMany(mappedBy = "permissions")
     private Set<User> users;
 
@@ -32,6 +35,14 @@ public class Permission {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public Set<User> getUsers() {

@@ -19,10 +19,12 @@ public class WebController {
 
     private final UserService userService;
     private final DeviceService deviceService;
+    private final com.hadean777.ums.repository.PermissionRepository permissionRepository;
 
-    public WebController(UserService userService, DeviceService deviceService) {
+    public WebController(UserService userService, DeviceService deviceService, com.hadean777.ums.repository.PermissionRepository permissionRepository) {
         this.userService = userService;
         this.deviceService = deviceService;
+        this.permissionRepository = permissionRepository;
     }
 
     @GetMapping("/login")
@@ -96,7 +98,13 @@ public class WebController {
 
     @GetMapping("/user/create")
     public String createUserForm(Model model) {
-        model.addAttribute("user", new User());
+        User user = new User();
+        user.setEnabled(true);
+        java.util.Set<com.hadean777.ums.entity.Permission> permissions = new java.util.HashSet<>();
+        permissionRepository.findById(1L).ifPresent(permissions::add);
+        user.setPermissions(permissions);
+        model.addAttribute("user", user);
+        model.addAttribute("allPermissions", permissionRepository.findAll());
         return "user_form";
     }
 
@@ -109,6 +117,7 @@ public class WebController {
     @GetMapping("/user/edit/{id}")
     public String editUserForm(@PathVariable Long id, Model model) {
         userService.getUserById(id).ifPresent(user -> model.addAttribute("user", user));
+        model.addAttribute("allPermissions", permissionRepository.findAll());
         return "user_form";
     }
 
