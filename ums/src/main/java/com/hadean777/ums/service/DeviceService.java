@@ -31,26 +31,34 @@ public class DeviceService {
         this.wireGuardService = wireGuardService;
     }
 
-    public void generateNewDevice(Long userId) throws Exception {
+    public void generateNewDevice(Long userId, String generationMode, String description) throws Exception {
         Device device = new Device();
 
-        //TODO: this is sample version. Need to be completed correctly.
-        final short prefixLength = DEFAULT_PREFIX_LENGTH;
+        final boolean isShortIp = "Short IP".equals(generationMode);
+        short prefixLength = DEFAULT_PREFIX_LENGTH;
+        if (generationMode != null && !isShortIp) {
+            try {
+                prefixLength = Short.parseShort(generationMode);
+            } catch (NumberFormatException e) {
+                // ignore, use default
+            }
+        }
+        
         final long now = new Date().getTime();
         final long expireTime = now + ONE_YEAR_MILLIS;
-        final String description = "Test description for user=" + userId + " at time " + now;
+        final String deviceDescription = description != null && !description.isEmpty() ? description : "";
         
         WireGuardService.WireGuardKeyPair keyPair = wireGuardService.generateKeyPair();
         final String publicKey = keyPair.getPublicKey();
         final String privateKey = keyPair.getPrivateKey();
 
-        Ip ip = generateIp(prefixLength);
+        Ip ip = generateIp(prefixLength, isShortIp);
 
         device.setUserId(userId);
-        device.setDescription(description);
+        device.setDescription(deviceDescription);
         device.setPublicKey(publicKey);
         device.setPrivateKey(privateKey);
-        device.setPrefixLength(prefixLength);
+        device.setPrefixLength(ip.getPrefixLength());
         device.setIpPrefix16(ip.getIpPrefix16());
         device.setIpPrefix32(ip.getIpPrefix32());
         device.setIpPrefix32_48(ip.getIpPrefix32_48());
@@ -120,36 +128,49 @@ public class DeviceService {
         return pngOutputStream.toByteArray();
     }
 
-    private Ip generateIp(Short prefixLength) {
+    private Ip generateIp(Short prefixLength, boolean isShortIp) {
         Ip ip = new Ip();
+
+        Random rand = new Random();
+        int prefix32_48 = rand.nextInt(WORD_LIMIT);
+        int prefix48_56 = rand.nextInt(BYTE_LIMIT);
+        int prefix56_64 = rand.nextInt(BYTE_LIMIT);
+        long slaac = rand.nextLong();
 
         final int prefix16 = GLOBAL_PREFIX_16;
         int prefix32 = START_PREFIX_128;
         if (prefixLength == 64) {
             prefix32 = START_PREFIX_64;
+            slaac = 1;
         } else if (prefixLength == 56) {
             prefix32 = START_PREFIX_56;
+            prefix56_64 = 0;
+            slaac = 1;
         } else if (prefixLength == 48) {
             prefix32 = START_PREFIX_48;
+            prefix48_56 = 0;
+            prefix56_64 = 0;
+            slaac = 1;
         } else if (prefixLength == 32) {
             prefix32 = START_PREFIX_32;
+            prefix32_48 = 0;
+            prefix48_56 = 0;
+            prefix56_64 = 0;
+            slaac = 1;
+        } else if (isShortIp) {
+            slaac = rand.nextInt(BYTE_LIMIT);//TODO: use sequence or something similar
         }
 
-        Random rand = new Random();
-
         prefix32 = prefix32 + rand.nextInt(DEFAULT_PREFIX_32_LIMIT);
-        final int prefix32_48 = rand.nextInt(WORD_LIMIT);
-        final int prefix48_56 = rand.nextInt(BYTE_LIMIT);
-        final int prefix56_64 = rand.nextInt(BYTE_LIMIT);
-        final long slaac = rand.nextLong();
 
-        final String ipAddress = convertToInet6Address(
+
+        final String ipAddress = toRfc5952(convertToInet6Address(
                 prefix16,
                 prefix32,
                 prefix32_48,
                 prefix48_56,
                 prefix56_64,
-                slaac).getHostAddress();
+                slaac));
 
         ip.setPrefixLength(prefixLength);
         ip.setIpPrefix16(prefix16);
@@ -193,6 +214,57 @@ public class DeviceService {
         } catch (UnknownHostException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    private String toRfc5952(Inet6Address address) {
+        byte[] bytes = address.getAddress();
+
+        int[] groups = new int[8];
+        for (int i = 0; i < 8; i++) {
+            groups[i] = ((bytes[i * 2] & 0xff) << 8)
+                    | (bytes[i * 2 + 1] & 0xff);
+        }
+
+        // Find longest run of zero groups (must be at least 2).
+        int bestStart = -1;
+        int bestLength = 0;
+
+        for (int i = 0; i < 8; ) {
+            if (groups[i] != 0) {
+                i++;
+                continue;
+            }
+
+            int start = i;
+            while (i < 8 && groups[i] == 0) {
+                i++;
+            }
+
+            int length = i - start;
+            if (length > bestLength && length >= 2) {
+                bestStart = start;
+                bestLength = length;
+            }
+        }
+
+        // Build RFC 5952 representation.
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < 8; i++) {
+            if (i == bestStart) {
+                sb.append("::");
+                i += bestLength - 1;
+                continue;
+            }
+
+            if (i > 0 && i != bestStart + bestLength) {
+                sb.append(':');
+            }
+
+            sb.append(Integer.toHexString(groups[i]));
+        }
+
+        return sb.toString();
     }
 
 }

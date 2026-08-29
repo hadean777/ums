@@ -43,6 +43,7 @@ public class WebController {
         if (userModel != null) {
             boolean isAdmin = userModel.isAdmin();
             model.addAttribute("isAdmin", isAdmin);
+            model.addAttribute("userModel", userModel);
             if (isAdmin) {
                 model.addAttribute("users", userService.getUsers(PageRequest.of(page, 30)));
             } else {
@@ -53,11 +54,13 @@ public class WebController {
     }
 
     @PostMapping("/device/create")
-    public String createDevice(Authentication authentication) throws Exception {
+    public String createDevice(Authentication authentication,
+                               @RequestParam(required = false) String generationMode,
+                               @RequestParam(required = false) String description) throws Exception {
         InternalUserModel userModel = userService.getUserModelByLogin(authentication.getName());
         if (userModel != null) {
             try {
-                deviceService.generateNewDevice(userModel.getUserId());
+                deviceService.generateNewDevice(userModel.getUserId(), generationMode, description);
             } catch (Exception e) {
                 e.printStackTrace();
             }
