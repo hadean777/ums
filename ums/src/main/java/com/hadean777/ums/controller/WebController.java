@@ -44,13 +44,29 @@ public class WebController {
             boolean isAdmin = userModel.isAdmin();
             model.addAttribute("isAdmin", isAdmin);
             model.addAttribute("userModel", userModel);
-            if (isAdmin) {
-                model.addAttribute("users", userService.getUsers(PageRequest.of(page, 30)));
-            } else {
-                model.addAttribute("devices", deviceService.getDevicesForUser(userModel.getUserId()));
-            }
+            model.addAttribute("users", userService.getUsers(PageRequest.of(page, 30)));
+            model.addAttribute("devices", deviceService.getDevicesForUser(userModel.getUserId()));
         }
         return "main";
+    }
+
+    @PostMapping("/change-password")
+    public String changePassword(Authentication authentication,
+                                 @RequestParam String currentPassword,
+                                 @RequestParam String newPassword,
+                                 @RequestParam String confirmPassword,
+                                 Model model) {
+        if (!newPassword.equals(confirmPassword)) {
+            model.addAttribute("errorMessage", "Passwords do not match");
+            return main(model, authentication, 0);
+        }
+        try {
+            userService.changePassword(authentication.getName(), currentPassword, newPassword);
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", e.getMessage());
+            return main(model, authentication, 0);
+        }
+        return "redirect:/main";
     }
 
     @PostMapping("/device/create")

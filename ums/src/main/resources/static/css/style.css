@@ -9,9 +9,84 @@ body {
     background-color: #282E33;
     color: #48D6BA;
     min-height: 100vh;
+}
+
+body.centered-body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.main-content {
+    flex-grow: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.sidebar {
+    width: 200px;
+    background: rgba(31, 37, 41, 0.9);
+    border-right: 1px solid rgba(72, 214, 186, 0.18);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-grow: 1;
+}
+
+.nav-item {
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    color: #48D6BA;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.nav-item:hover, .nav-item.active {
+    background: rgba(72, 214, 186, 0.15);
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(72, 214, 186, 0.1);
+}
+
+.logout-btn {
+    background: transparent;
+    border: 1px solid #ff4d4d;
+    color: #ff4d4d;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.logout-btn:hover {
+    background: #ff4d4d;
+    color: white;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
 }
 
 .container {
@@ -21,6 +96,7 @@ body {
     border-radius: 16px;
     width: 100%;
     max-width: 420px;
+    margin: 0 auto;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(72, 214, 186, 0.18);
 }

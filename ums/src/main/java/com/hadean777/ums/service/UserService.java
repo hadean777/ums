@@ -100,4 +100,15 @@ public class UserService implements UserDetailsService {
         repository.save(user);
     }
 
+    public void changePassword(String login, String currentPassword, String newPassword) {
+        repository.findByLogin(login).ifPresent(user -> {
+            if (passwordEncoder.matches(currentPassword, user.getPasswd())) {
+                user.setPasswd(passwordEncoder.encode(newPassword));
+                repository.save(user);
+            } else {
+                throw new RuntimeException("Current password does not match");
+            }
+        });
+    }
+
 }
