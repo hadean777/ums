@@ -3,6 +3,8 @@ package com.hadean777.ums;
 public class Constants {
 
     public static final long ONE_YEAR_MILLIS = 365 * 24 * 60 * 60 * 1000L;
+    public static final long MAX_EXPIRATION_TIME = ONE_YEAR_MILLIS;
+    public static final long DEFAULT_EXPIRATION_TIME = 7 * 24 * 60 * 60 * 1000L;
 
     public static final int GLOBAL_PREFIX_16 = 0xfd71;
     public static final int START_PREFIX_128 = 0x9000;

@@ -25,6 +25,18 @@
             <h1>Users</h1>
             <div th:if="${errorMessage}" class="error" th:text="${errorMessage}"></div>
             <a th:href="@{/user/create}" class="btn-pill" style="display: inline-block; margin-bottom: 1rem; background: #4CAF50; color: white; text-decoration: none; width: auto; padding: 0.5rem 1rem;">Create New User</a>
+
+            <div th:if="${isAdmin}" style="margin-bottom: 1rem; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                <h3>Invite Link</h3>
+                <form th:action="@{/user/generate-invite}" method="post" style="display: flex; gap: 10px; align-items: center;">
+                    <label>Expiration (ms):</label>
+                    <input type="number" name="expirationMillis" placeholder="Default 7 days" class="btn-pill" style="background: white; color: black; border: 1px solid #ccc; padding: 0.5rem 1rem; margin-top: 0;">
+                    <button type="submit" class="btn-pill" style="background: #4CAF50; color: white; border: none; padding: 0.5rem 1rem; cursor: pointer; margin-top: 0; width: auto;">Generate Invite</button>
+                </form>
+                <div th:if="${inviteToken}" style="margin-top: 10px;">
+                    <p>Invite link generated: <strong th:text="${baseUrl + '/register?token=' + inviteToken}"></strong></p>
+                </div>
+            </div>
             
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
                 <thead>

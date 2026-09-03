@@ -38,6 +38,7 @@ public class WebController {
     @GetMapping("/main")
     public String main(Model model,
                        Authentication authentication,
+                       jakarta.servlet.http.HttpServletRequest request,
                        @RequestParam(defaultValue = "0") int page) {
         InternalUserModel userModel = userService.getUserModelByLogin(authentication.getName());
         if (userModel != null) {
@@ -46,6 +47,10 @@ public class WebController {
             model.addAttribute("userModel", userModel);
             model.addAttribute("users", userService.getUsers(PageRequest.of(page, 30)));
             model.addAttribute("devices", deviceService.getDevicesForUser(userModel.getUserId()));
+
+            String baseUrl = request.getScheme() + "://" + request.getServerName() +
+                    (request.getServerPort() != 80 && request.getServerPort() != 443 ? ":" + request.getServerPort() : "");
+            model.addAttribute("baseUrl", baseUrl);
         }
         return "main";
     }
@@ -55,16 +60,17 @@ public class WebController {
                                  @RequestParam String currentPassword,
                                  @RequestParam String newPassword,
                                  @RequestParam String confirmPassword,
+                                 jakarta.servlet.http.HttpServletRequest request,
                                  Model model) {
         if (!newPassword.equals(confirmPassword)) {
             model.addAttribute("errorMessage", "Passwords do not match");
-            return main(model, authentication, 0);
+            return main(model, authentication, request, 0);
         }
         try {
             userService.changePassword(authentication.getName(), currentPassword, newPassword);
         } catch (Exception e) {
             model.addAttribute("errorMessage", e.getMessage());
-            return main(model, authentication, 0);
+            return main(model, authentication, request, 0);
         }
         return "redirect:/main";
     }
@@ -190,6 +196,49 @@ public class WebController {
                     }
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/register")
+    public String showRegistrationForm(@RequestParam String token, Model model) {
+        if (userService.getInviteLink(token).isPresent()) {
+            model.addAttribute("token", token);
+            return "register";
+        }
+        return "redirect:/login?error=invalid_token";
+    }
+
+    @PostMapping("/register")
+    public String registerUser(@RequestParam String token,
+                               @RequestParam String login,
+                               @RequestParam String password,
+                               @RequestParam String confirmPassword,
+                               Model model) {
+        if (!password.equals(confirmPassword)) {
+            model.addAttribute("errorMessage", "Passwords do not match");
+            model.addAttribute("token", token);
+            return "register";
+        }
+        try {
+            userService.registerUser(token, login, password);
+            return "redirect:/login?registered";
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", e.getMessage());
+            model.addAttribute("token", token);
+            return "register";
+        }
+    }
+
+    @PostMapping("/user/generate-invite")
+    public String generateInviteLink(@RequestParam(required = false) Long expirationMillis,
+                                     Authentication authentication,
+                                     jakarta.servlet.http.HttpServletRequest request,
+                                     Model model) {
+        boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        if (isAdmin) {
+            String token = userService.generateInviteLink(expirationMillis);
+            model.addAttribute("inviteToken", token);
+        }
+        return main(model, authentication, request, 0);
     }
 
     @GetMapping("/")

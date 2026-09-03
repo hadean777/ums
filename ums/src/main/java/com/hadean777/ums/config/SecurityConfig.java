@@ -17,7 +17,7 @@ public class SecurityConfig {
                                                    AuthenticationFailureHandler failureHandler) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/css/**", "/error").permitAll()
+                        .requestMatchers("/login", "/register", "/css/**", "/error").permitAll()
                         .requestMatchers("/user/**").hasRole("ADMIN")
                         .requestMatchers("/main").authenticated()
                         .anyRequest().authenticated()

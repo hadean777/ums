@@ -1,8 +1,11 @@
 package com.hadean777.ums.service;
 
+import com.hadean777.ums.Constants;
+import com.hadean777.ums.entity.InviteLink;
 import com.hadean777.ums.entity.Permission;
 import com.hadean777.ums.entity.User;
 import com.hadean777.ums.model.InternalUserModel;
+import com.hadean777.ums.repository.InviteLinkRepository;
 import com.hadean777.ums.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,10 +14,13 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -22,11 +28,16 @@ public class UserService implements UserDetailsService {
     private final UserRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final com.hadean777.ums.repository.PermissionRepository permissionRepository;
+    private final InviteLinkRepository inviteLinkRepository;
 
-    public UserService(UserRepository repository, PasswordEncoder passwordEncoder, com.hadean777.ums.repository.PermissionRepository permissionRepository) {
+    public UserService(UserRepository repository,
+                       PasswordEncoder passwordEncoder,
+                       com.hadean777.ums.repository.PermissionRepository permissionRepository,
+                       InviteLinkRepository inviteLinkRepository) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.permissionRepository = permissionRepository;
+        this.inviteLinkRepository = inviteLinkRepository;
     }
 
     @Override
@@ -109,6 +120,51 @@ public class UserService implements UserDetailsService {
                 throw new RuntimeException("Current password does not match");
             }
         });
+    }
+
+    public String generateInviteLink(Long expirationMillis) {
+        if (expirationMillis == null) {
+            expirationMillis = Constants.DEFAULT_EXPIRATION_TIME;
+        }
+        if (expirationMillis > Constants.MAX_EXPIRATION_TIME) {
+            expirationMillis = Constants.MAX_EXPIRATION_TIME;
+        }
+
+        InviteLink inviteLink = new InviteLink();
+        inviteLink.setToken(UUID.randomUUID().toString());
+        inviteLink.setExpirationTime(LocalDateTime.now().plusNanos(expirationMillis * 1_000_000));
+        inviteLink.setUsed(false);
+        inviteLinkRepository.save(inviteLink);
+
+        return inviteLink.getToken();
+    }
+
+    public Optional<InviteLink> getInviteLink(String token) {
+        return inviteLinkRepository.findByToken(token)
+                .filter(link -> !link.isUsed() && link.getExpirationTime().isAfter(LocalDateTime.now()));
+    }
+
+    @Transactional
+    public void registerUser(String token, String login, String password) {
+        InviteLink inviteLink = getInviteLink(token)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired invite link"));
+
+        if (repository.findByLogin(login).isPresent()) {
+            throw new RuntimeException("User already exists");
+        }
+
+        User user = new User();
+        user.setLogin(login);
+        user.setPasswd(passwordEncoder.encode(password));
+        user.setAuthRole("USER");
+        user.setEnabled(true);
+        user.setPermissions(new HashSet<>());
+        permissionRepository.findById(1L).ifPresent(p -> user.getPermissions().add(p));
+
+        repository.save(user);
+
+        inviteLink.setUsed(true);
+        inviteLinkRepository.save(inviteLink);
     }
 
 }
