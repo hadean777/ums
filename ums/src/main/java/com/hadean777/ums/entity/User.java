@@ -25,6 +25,9 @@ public class User {
     @Column(name = "enabled", nullable = false)
     private Boolean enabled;
 
+    @Column(name = "created_by", nullable = false)
+    private Long createdBy;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "USER_PERMISSION",
@@ -72,6 +75,14 @@ public class User {
 
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public Long getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(Long createdBy) {
+        this.createdBy = createdBy;
     }
 
     public Set<Permission> getPermissions() {

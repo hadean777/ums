@@ -1,7 +1,6 @@
 package com.hadean777.ums.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "INVITE_LINK")
@@ -16,10 +15,13 @@ public class InviteLink {
     private String token;
 
     @Column(name = "EXPIRATION_TIME", nullable = false)
-    private LocalDateTime expirationTime;
+    private Long expirationTime;
 
     @Column(name = "USED", nullable = false)
     private boolean used = false;
+
+    @Column(name = "CREATED_BY", nullable = false)
+    private Long createdBy;
 
     public Long getId() {
         return id;
@@ -37,11 +39,11 @@ public class InviteLink {
         this.token = token;
     }
 
-    public LocalDateTime getExpirationTime() {
+    public Long getExpirationTime() {
         return expirationTime;
     }
 
-    public void setExpirationTime(LocalDateTime expirationTime) {
+    public void setExpirationTime(Long expirationTime) {
         this.expirationTime = expirationTime;
     }
 
@@ -51,5 +53,13 @@ public class InviteLink {
 
     public void setUsed(boolean used) {
         this.used = used;
+    }
+
+    public Long getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(Long createdBy) {
+        this.createdBy = createdBy;
     }
 }

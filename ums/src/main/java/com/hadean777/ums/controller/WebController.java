@@ -14,6 +14,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Controller
 public class WebController {
 
@@ -39,7 +41,8 @@ public class WebController {
     public String main(Model model,
                        Authentication authentication,
                        jakarta.servlet.http.HttpServletRequest request,
-                       @RequestParam(defaultValue = "0") int page) {
+                       @RequestParam(defaultValue = "0") int page,
+                       @RequestParam(required = false) String tab) {
         InternalUserModel userModel = userService.getUserModelByLogin(authentication.getName());
         if (userModel != null) {
             boolean isAdmin = userModel.isAdmin();
@@ -48,9 +51,18 @@ public class WebController {
             model.addAttribute("users", userService.getUsers(PageRequest.of(page, 30)));
             model.addAttribute("devices", deviceService.getDevicesForUser(userModel.getUserId()));
 
+            if (isAdmin) {
+                model.addAttribute("invites", userService.getAllInviteLinks());
+            }
+
+            if (tab == null && model.containsAttribute("inviteToken")) {
+                tab = "invites-tab";
+            }
+
             String baseUrl = request.getScheme() + "://" + request.getServerName() +
                     (request.getServerPort() != 80 && request.getServerPort() != 443 ? ":" + request.getServerPort() : "");
             model.addAttribute("baseUrl", baseUrl);
+            model.addAttribute("activeTab", tab);
         }
         return "main";
     }
@@ -64,15 +76,15 @@ public class WebController {
                                  Model model) {
         if (!newPassword.equals(confirmPassword)) {
             model.addAttribute("errorMessage", "Passwords do not match");
-            return main(model, authentication, request, 0);
+            return main(model, authentication, request, 0, "settings-tab");
         }
         try {
             userService.changePassword(authentication.getName(), currentPassword, newPassword);
         } catch (Exception e) {
             model.addAttribute("errorMessage", e.getMessage());
-            return main(model, authentication, request, 0);
+            return main(model, authentication, request, 0, "settings-tab");
         }
-        return "redirect:/main";
+        return "redirect:/main?tab=settings-tab";
     }
 
     @PostMapping("/device/create")
@@ -87,7 +99,7 @@ public class WebController {
                 e.printStackTrace();
             }
         }
-        return "redirect:/main";
+        return "redirect:/main?tab=devices-tab";
     }
 
     @GetMapping("/device/edit/{id}")
@@ -99,7 +111,7 @@ public class WebController {
     @PostMapping("/device/save")
     public String saveDevice(@ModelAttribute com.hadean777.ums.entity.Device device) {
         deviceService.updateDevice(device.getId(), device.getDescription(), device.getEnabled());
-        return "redirect:/main";
+        return "redirect:/main?tab=devices-tab";
     }
 
     @PostMapping("/device/delete/{id}")
@@ -118,7 +130,7 @@ public class WebController {
                 }
             }
         });
-        return "redirect:/main";
+        return "redirect:/main?tab=devices-tab";
     }
 
     @GetMapping("/user/create")
@@ -134,9 +146,12 @@ public class WebController {
     }
 
     @PostMapping("/user/save")
-    public String saveUser(@ModelAttribute User user) {
+    public String saveUser(@ModelAttribute User user, Authentication authentication) {
+        if (user.getId() == null) {
+            userService.getUserByLogin(authentication.getName()).ifPresent(admin -> user.setCreatedBy(admin.getId()));
+        }
         userService.saveUser(user);
-        return "redirect:/main";
+        return "redirect:/main?tab=users-tab";
     }
 
     @GetMapping("/user/edit/{id}")
@@ -235,10 +250,11 @@ public class WebController {
                                      Model model) {
         boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
         if (isAdmin) {
-            String token = userService.generateInviteLink(expirationMillis);
+            Long adminId = userService.getUserByLogin(authentication.getName()).map(User::getId).orElse(null);
+            String token = userService.generateInviteLink(expirationMillis, adminId);
             model.addAttribute("inviteToken", token);
         }
-        return main(model, authentication, request, 0);
+        return main(model, authentication, request, 0, "invites-tab");
     }
 
     @GetMapping("/")

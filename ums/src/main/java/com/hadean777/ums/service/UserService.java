@@ -17,10 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.time.ZoneOffset;
+import java.util.*;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -122,7 +120,11 @@ public class UserService implements UserDetailsService {
         });
     }
 
-    public String generateInviteLink(Long expirationMillis) {
+    public List<InviteLink> getAllInviteLinks() {
+        return inviteLinkRepository.findAll();
+    }
+
+    public String generateInviteLink(Long expirationMillis, Long createdBy) {
         if (expirationMillis == null) {
             expirationMillis = Constants.DEFAULT_EXPIRATION_TIME;
         }
@@ -132,16 +134,18 @@ public class UserService implements UserDetailsService {
 
         InviteLink inviteLink = new InviteLink();
         inviteLink.setToken(UUID.randomUUID().toString());
-        inviteLink.setExpirationTime(LocalDateTime.now().plusNanos(expirationMillis * 1_000_000));
+        inviteLink.setExpirationTime(LocalDateTime.now().plusNanos(expirationMillis * 1_000_000).toEpochSecond(ZoneOffset.UTC));
         inviteLink.setUsed(false);
+        inviteLink.setCreatedBy(createdBy);
         inviteLinkRepository.save(inviteLink);
 
         return inviteLink.getToken();
     }
 
     public Optional<InviteLink> getInviteLink(String token) {
+        final long nowSeconds = new Date().getTime() / 1000;
         return inviteLinkRepository.findByToken(token)
-                .filter(link -> !link.isUsed() && link.getExpirationTime().isAfter(LocalDateTime.now()));
+                .filter(link -> !link.isUsed() && link.getExpirationTime() > nowSeconds);
     }
 
     @Transactional
@@ -158,6 +162,7 @@ public class UserService implements UserDetailsService {
         user.setPasswd(passwordEncoder.encode(password));
         user.setAuthRole("USER");
         user.setEnabled(true);
+        user.setCreatedBy(inviteLink.getCreatedBy());
         user.setPermissions(new HashSet<>());
         permissionRepository.findById(1L).ifPresent(p -> user.getPermissions().add(p));
 
