@@ -17,7 +17,7 @@ touch wg0.conf
 PrivateKey = <content of server_private.key>
 Address = fd71::1/16
 ListenPort = 51820
-SaveConfig = false
+SaveConfig = true
 ##############################
 
 sudo systemctl enable --now wg-quick@wg0

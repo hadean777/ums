@@ -1,6 +1,7 @@
 package com.hadean777.ums.service;
 
 import com.hadean777.ums.Constants;
+import com.hadean777.ums.entity.Device;
 import com.hadean777.ums.entity.InviteLink;
 import com.hadean777.ums.entity.Permission;
 import com.hadean777.ums.entity.User;
@@ -9,6 +10,8 @@ import com.hadean777.ums.repository.InviteLinkRepository;
 import com.hadean777.ums.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.session.SessionInformation;
+import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -19,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.hadean777.ums.Constants.CLIENT_ALLOWED_IPS;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -27,15 +33,24 @@ public class UserService implements UserDetailsService {
     private final PasswordEncoder passwordEncoder;
     private final com.hadean777.ums.repository.PermissionRepository permissionRepository;
     private final InviteLinkRepository inviteLinkRepository;
+    private final SessionRegistry sessionRegistry;
+    private final DeviceService deviceService;
+    private final WireGuardService wireGuardService;
 
     public UserService(UserRepository repository,
                        PasswordEncoder passwordEncoder,
                        com.hadean777.ums.repository.PermissionRepository permissionRepository,
-                       InviteLinkRepository inviteLinkRepository) {
+                       InviteLinkRepository inviteLinkRepository,
+                       SessionRegistry sessionRegistry,
+                       DeviceService deviceService,
+                       WireGuardService wireGuardService) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.permissionRepository = permissionRepository;
         this.inviteLinkRepository = inviteLinkRepository;
+        this.sessionRegistry = sessionRegistry;
+        this.deviceService = deviceService;
+        this.wireGuardService = wireGuardService;
     }
 
     @Override
@@ -84,13 +99,27 @@ public class UserService implements UserDetailsService {
     }
 
     public void saveUser(User user) {
+        Boolean oldEnabled = null;
+        boolean useOldPassword = true;
         if (user.getPasswd() != null && !user.getPasswd().isEmpty()) {
             if (!user.getPasswd().startsWith("$2a$")) {
                 user.setPasswd(passwordEncoder.encode(user.getPasswd()));
+                useOldPassword = false;
             }
-        } else if (user.getId() != null) {
+        }
+        if (user.getId() != null) {
             // If editing and password is empty, keep the old one
-            repository.findById(user.getId()).ifPresent(existingUser -> user.setPasswd(existingUser.getPasswd()));
+            Optional<User> existingUserOpt = repository.findById(user.getId());
+            if (existingUserOpt.isPresent()) {
+                User existingUser = existingUserOpt.get();
+                if (useOldPassword) {
+                    user.setPasswd(existingUser.getPasswd());
+                }
+                oldEnabled = existingUser.getEnabled();
+                if (user.getCreatedBy() == null) {
+                    user.setCreatedBy(existingUser.getCreatedBy());
+                }
+            }
         }
 
         if (user.getId() == null) {
@@ -107,6 +136,46 @@ public class UserService implements UserDetailsService {
         }
 
         repository.save(user);
+
+        // Check if enabled status changed
+        if (user.getId() != null && oldEnabled != null && !oldEnabled.equals(user.getEnabled())) {
+            if (Boolean.FALSE.equals(user.getEnabled())) {
+                // Remove active sessions
+                List<Object> principals = sessionRegistry.getAllPrincipals();
+                for (Object principal : principals) {
+                    if (principal instanceof UserDetails) {
+                        UserDetails userDetails = (UserDetails) principal;
+                        if (userDetails.getUsername().equals(user.getLogin())) {
+                            List<SessionInformation> sessions = sessionRegistry.getAllSessions(principal, false);
+                            for (SessionInformation session : sessions) {
+                                session.expireNow();
+                            }
+                        }
+                    }
+                }
+                // Disable devices on WG side
+                List<Device> devices = deviceService.getDevicesForUser(user.getId());
+                for (Device device : devices) {
+                    try {
+                        wireGuardService.removePeer(device.getPublicKey());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else if (Boolean.TRUE.equals(user.getEnabled())) {
+                // Restore devices on WG side where device.enabled = true
+                List<Device> devices = deviceService.getDevicesForUser(user.getId());
+                for (Device device : devices) {
+                    if (Boolean.TRUE.equals(device.getEnabled())) {
+                        try {
+                            wireGuardService.addPeer(device.getPublicKey(), CLIENT_ALLOWED_IPS);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public void changePassword(String login, String currentPassword, String newPassword) {

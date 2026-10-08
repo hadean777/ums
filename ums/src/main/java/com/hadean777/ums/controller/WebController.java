@@ -4,12 +4,14 @@ import com.hadean777.ums.entity.User;
 import com.hadean777.ums.model.InternalUserModel;
 import com.hadean777.ums.service.DeviceService;
 import com.hadean777.ums.service.UserService;
+import com.hadean777.ums.service.WireGuardService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -22,11 +24,19 @@ public class WebController {
     private final UserService userService;
     private final DeviceService deviceService;
     private final com.hadean777.ums.repository.PermissionRepository permissionRepository;
+    private final SessionRegistry sessionRegistry;
+    private final WireGuardService wireGuardService;
 
-    public WebController(UserService userService, DeviceService deviceService, com.hadean777.ums.repository.PermissionRepository permissionRepository) {
+    public WebController(UserService userService,
+                         DeviceService deviceService,
+                         com.hadean777.ums.repository.PermissionRepository permissionRepository,
+                         SessionRegistry sessionRegistry,
+                         WireGuardService wireGuardService) {
         this.userService = userService;
         this.deviceService = deviceService;
         this.permissionRepository = permissionRepository;
+        this.sessionRegistry = sessionRegistry;
+        this.wireGuardService = wireGuardService;
     }
 
     @GetMapping("/login")
@@ -114,6 +124,25 @@ public class WebController {
         return "redirect:/main?tab=devices-tab";
     }
 
+    @PostMapping("/device/refresh-keys/{id}")
+    public String refreshDeviceKeys(@PathVariable Long id, Authentication authentication) throws Exception {
+        deviceService.getDeviceById(id).ifPresent(device -> {
+            boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+            boolean isOwner = userService.getUserByLogin(authentication.getName())
+                    .map(user -> user.getId().equals(device.getUserId()))
+                    .orElse(false);
+
+            if (isAdmin || isOwner) {
+                try {
+                    deviceService.refreshDeviceKeys(id);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        return "redirect:/device/edit/" + id;
+    }
+
     @PostMapping("/device/delete/{id}")
     public String deleteDevice(@PathVariable Long id, Authentication authentication) throws Exception {
         deviceService.getDeviceById(id).ifPresent(device -> {
@@ -147,8 +176,9 @@ public class WebController {
 
     @PostMapping("/user/save")
     public String saveUser(@ModelAttribute User user, Authentication authentication) {
-        if (user.getId() == null) {
-            userService.getUserByLogin(authentication.getName()).ifPresent(admin -> user.setCreatedBy(admin.getId()));
+        InternalUserModel userModel = userService.getUserModelByLogin(authentication.getName());
+        if (userModel != null) {
+            user.setCreatedBy(userModel.getUserId());
         }
         userService.saveUser(user);
         return "redirect:/main?tab=users-tab";

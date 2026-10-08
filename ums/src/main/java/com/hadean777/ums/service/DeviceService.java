@@ -72,7 +72,9 @@ public class DeviceService {
 
         deviceRepository.save(device);
 
-        wireGuardService.addPeer(device.getPublicKey(), CLIENT_ALLOWED_IPS);
+        if (device.getEnabled()) {
+            wireGuardService.addPeer(device.getPublicKey(), CLIENT_ALLOWED_IPS);
+        }
     }
 
     public List<Device> getDevicesForUser(Long userId) {
@@ -85,7 +87,40 @@ public class DeviceService {
             device.setEnabled(enabled);
             device.setUpdatedAt(new Date().getTime());
             deviceRepository.save(device);
+            try {
+                if (enabled) {
+                    wireGuardService.addPeer(device.getPublicKey(), CLIENT_ALLOWED_IPS);
+                } else {
+                    wireGuardService.removePeer(device.getPublicKey());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
+    }
+
+    public void refreshDeviceKeys(Long deviceId) throws Exception {
+        Device device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new RuntimeException("Device not found"));
+
+        // 1. remove existing device on WG side
+        wireGuardService.removePeer(device.getPublicKey());
+
+        // 2. generate new key pair
+        WireGuardService.WireGuardKeyPair keyPair = wireGuardService.generateKeyPair();
+        String newPublicKey = keyPair.getPublicKey();
+        String newPrivateKey = keyPair.getPrivateKey();
+
+        // 3. update current device in DB with new key pair
+        device.setPublicKey(newPublicKey);
+        device.setPrivateKey(newPrivateKey);
+        device.setUpdatedAt(new Date().getTime());
+        deviceRepository.save(device);
+
+        // 4. register new device on WG side
+        if (device.getEnabled()) {
+            wireGuardService.addPeer(newPublicKey, CLIENT_ALLOWED_IPS);
+        }
     }
 
     public java.util.Optional<Device> getDeviceById(Long deviceId) {
