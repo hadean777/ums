@@ -12,10 +12,17 @@
     <h1>Sign In</h1>
 
     <div th:if="${param.error}" class="error">
-        Wrong credentials
+        <span th:if="${param.error[0] == 'true'}">Wrong credentials</span>
+        <span th:if="${param.error[0] == 'invalid_token'}">Invalid or expired token</span>
     </div>
     <div th:if="${param.logout}" class="success">
         You have been logged out
+    </div>
+    <div th:if="${param.registered}" class="success">
+        Registration successful. You can now log in.
+    </div>
+    <div th:if="${param.resetSuccess}" class="success">
+        Password updated successfully. You can now log in with your new password.
     </div>
 
     <form th:action="@{/login}" method="post">

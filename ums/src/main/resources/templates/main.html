@@ -72,7 +72,7 @@
                     <button type="submit" class="btn-pill" style="background: #4CAF50; color: white; border: none; padding: 0.5rem 1rem; cursor: pointer; margin-top: 0; width: auto;">Generate Invite</button>
                 </form>
                 <div th:if="${inviteToken}" style="margin-top: 10px;">
-                    <p>Invite link generated: <strong th:text="${baseUrl + '/register?token=' + inviteToken}"></strong></p>
+                    <p>Invite link generated: <strong th:text="${baseUrl != null ? baseUrl + '/register?token=' + inviteToken : 'Token: ' + inviteToken}"></strong></p>
                 </div>
             </div>
 
@@ -125,7 +125,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr th:each="d : ${devices}">
+                    <tr th:each="d : ${devices.content}">
                         <td style="border: 1px solid #ddd; padding: 8px;" th:text="${d.id}"></td>
                         <td style="border: 1px solid #ddd; padding: 8px;" th:text="${d.description}"></td>
                         <td style="border: 1px solid #ddd; padding: 8px;">
@@ -162,6 +162,15 @@
                     </tr>
                 </tbody>
             </table>
+
+            <!-- Device Pagination -->
+            <div th:if="${devices.totalPages > 1}">
+                <span th:each="i : ${#numbers.sequence(0, devices.totalPages - 1)}">
+                    <a th:href="@{/main(dpage=${i}, tab='devices-tab')}" th:text="${i + 1}"
+                       th:style="${devices.number == i} ? 'font-weight: bold; margin: 0 5px; color: #48D6BA;' : 'margin: 0 5px; color: #48D6BA;'"></a>
+                </span>
+            </div>
+
             <p th:if="${devices == null || devices.isEmpty()}">No devices found.</p>
         </div>
 

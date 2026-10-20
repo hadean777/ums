@@ -5,6 +5,7 @@ import com.hadean777.ums.model.InternalUserModel;
 import com.hadean777.ums.service.DeviceService;
 import com.hadean777.ums.service.UserService;
 import com.hadean777.ums.service.WireGuardService;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -52,14 +53,15 @@ public class WebController {
                        Authentication authentication,
                        jakarta.servlet.http.HttpServletRequest request,
                        @RequestParam(defaultValue = "0") int page,
+                       @RequestParam(defaultValue = "0") int dpage,
                        @RequestParam(required = false) String tab) {
         InternalUserModel userModel = userService.getUserModelByLogin(authentication.getName());
         if (userModel != null) {
             boolean isAdmin = userModel.isAdmin();
             model.addAttribute("isAdmin", isAdmin);
             model.addAttribute("userModel", userModel);
-            model.addAttribute("users", userService.getUsers(PageRequest.of(page, 30)));
-            model.addAttribute("devices", deviceService.getDevicesForUser(userModel.getUserId()));
+            model.addAttribute("users", userService.getUsers(PageRequest.of(page, 30).withSort(Sort.Direction.ASC, "id")));
+            model.addAttribute("devices", deviceService.getDevicesForUser(userModel.getUserId(), PageRequest.of(dpage, 30).withSort(Sort.Direction.ASC, "id")));
 
             if (isAdmin) {
                 model.addAttribute("invites", userService.getAllInviteLinks());
@@ -86,13 +88,13 @@ public class WebController {
                                  Model model) {
         if (!newPassword.equals(confirmPassword)) {
             model.addAttribute("errorMessage", "Passwords do not match");
-            return main(model, authentication, request, 0, "settings-tab");
+            return main(model, authentication, request, 0, 0, "settings-tab");
         }
         try {
             userService.changePassword(authentication.getName(), currentPassword, newPassword);
         } catch (Exception e) {
             model.addAttribute("errorMessage", e.getMessage());
-            return main(model, authentication, request, 0, "settings-tab");
+            return main(model, authentication, request, 0, 0, "settings-tab");
         }
         return "redirect:/main?tab=settings-tab";
     }
@@ -283,8 +285,62 @@ public class WebController {
             Long adminId = userService.getUserByLogin(authentication.getName()).map(User::getId).orElse(null);
             String token = userService.generateInviteLink(expirationMillis, adminId);
             model.addAttribute("inviteToken", token);
+
+            String baseUrl = request.getScheme() + "://" + request.getServerName()
+                    + (request.getServerPort() == 80 || request.getServerPort() == 443 ? "" : ":" + request.getServerPort())
+                    + request.getContextPath();
+            model.addAttribute("baseUrl", baseUrl);
         }
-        return main(model, authentication, request, 0, "invites-tab");
+        return main(model, authentication, request, 0, 0, "invites-tab");
+    }
+
+    @PostMapping("/user/reset-password/{id}")
+    public String generateResetPasswordLink(@PathVariable Long id,
+                                            Authentication authentication,
+                                            jakarta.servlet.http.HttpServletRequest request,
+                                            Model model) {
+        boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        if (isAdmin) {
+            Long adminId = userService.getUserByLogin(authentication.getName()).map(User::getId).orElse(null);
+            long oneDayMillis = 24 * 60 * 60 * 1000L;
+            String token = userService.generateInviteLink(oneDayMillis, adminId, id);
+            model.addAttribute("resetToken", token);
+
+            String baseUrl = request.getScheme() + "://" + request.getServerName()
+                    + (request.getServerPort() == 80 || request.getServerPort() == 443 ? "" : ":" + request.getServerPort())
+                    + request.getContextPath();
+            model.addAttribute("baseUrl", baseUrl);
+        }
+        return editUserForm(id, model);
+    }
+
+    @GetMapping("/reset-password")
+    public String showResetPasswordForm(@RequestParam String token, Model model) {
+        if (userService.getInviteLink(token).isPresent()) {
+            model.addAttribute("token", token);
+            return "reset_password";
+        }
+        return "redirect:/login?error=invalid_token";
+    }
+
+    @PostMapping("/reset-password")
+    public String resetPassword(@RequestParam String token,
+                                @RequestParam String password,
+                                @RequestParam String confirmPassword,
+                                Model model) {
+        if (!password.equals(confirmPassword)) {
+            model.addAttribute("errorMessage", "Passwords do not match");
+            model.addAttribute("token", token);
+            return "reset_password";
+        }
+        try {
+            userService.resetPassword(token, password);
+            return "redirect:/login?resetSuccess";
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", e.getMessage());
+            model.addAttribute("token", token);
+            return "reset_password";
+        }
     }
 
     @GetMapping("/")

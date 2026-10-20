@@ -21,7 +21,7 @@ public class SecurityConfig {
                                                    SessionRegistry sessionRegistry) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/register", "/css/**", "/error").permitAll()
+                        .requestMatchers("/login", "/register", "/reset-password", "/css/**", "/error").permitAll()
                         .requestMatchers("/user/**").hasRole("ADMIN")
                         .requestMatchers("/main").authenticated()
                         .anyRequest().authenticated()

@@ -7,6 +7,8 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
@@ -79,6 +81,10 @@ public class DeviceService {
 
     public List<Device> getDevicesForUser(Long userId) {
         return deviceRepository.findByUserId(userId);
+    }
+
+    public Page<Device> getDevicesForUser(Long userId, Pageable pageable) {
+        return deviceRepository.findByUserId(userId, pageable);
     }
 
     public void updateDevice(Long deviceId, String description, Boolean enabled) {

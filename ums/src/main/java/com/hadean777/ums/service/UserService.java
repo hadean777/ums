@@ -194,6 +194,10 @@ public class UserService implements UserDetailsService {
     }
 
     public String generateInviteLink(Long expirationMillis, Long createdBy) {
+        return generateInviteLink(expirationMillis, createdBy, null);
+    }
+
+    public String generateInviteLink(Long expirationMillis, Long createdBy, Long forUser) {
         if (expirationMillis == null) {
             expirationMillis = Constants.DEFAULT_EXPIRATION_TIME;
         }
@@ -206,6 +210,7 @@ public class UserService implements UserDetailsService {
         inviteLink.setExpirationTime(LocalDateTime.now().plusNanos(expirationMillis * 1_000_000).toEpochSecond(ZoneOffset.UTC));
         inviteLink.setUsed(false);
         inviteLink.setCreatedBy(createdBy);
+        inviteLink.setForUser(forUser);
         inviteLinkRepository.save(inviteLink);
 
         return inviteLink.getToken();
@@ -236,6 +241,24 @@ public class UserService implements UserDetailsService {
         permissionRepository.findById(1L).ifPresent(p -> user.getPermissions().add(p));
 
         repository.save(user);
+
+        inviteLink.setUsed(true);
+        inviteLinkRepository.save(inviteLink);
+    }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        InviteLink inviteLink = getInviteLink(token)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired reset password link"));
+
+        if (inviteLink.getForUser() == null) {
+            throw new RuntimeException("Invalid reset password link");
+        }
+
+        repository.findById(inviteLink.getForUser()).ifPresent(user -> {
+            user.setPasswd(passwordEncoder.encode(newPassword));
+            repository.save(user);
+        });
 
         inviteLink.setUsed(true);
         inviteLinkRepository.save(inviteLink);

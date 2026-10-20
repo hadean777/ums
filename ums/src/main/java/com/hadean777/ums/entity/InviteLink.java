@@ -23,6 +23,9 @@ public class InviteLink {
     @Column(name = "CREATED_BY", nullable = false)
     private Long createdBy;
 
+    @Column(name = "FOR_USER")
+    private Long forUser;
+
     public Long getId() {
         return id;
     }
@@ -61,5 +64,13 @@ public class InviteLink {
 
     public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public Long getForUser() {
+        return forUser;
+    }
+
+    public void setForUser(Long forUser) {
+        this.forUser = forUser;
     }
 }

@@ -52,6 +52,30 @@
             <a th:href="@{/main}" class="btn-pill" style="background: #ccc; color: black; text-decoration: none; text-align: center;">Cancel</a>
         </div>
     </form>
+
+    <div th:if="${user.id != null}" style="margin-top: 2rem; border-top: 1px solid #ccc; padding-top: 2rem;">
+        <h3>Reset Password</h3>
+        <form th:action="@{'/user/reset-password/' + ${user.id}}" method="post">
+            <button type="submit" class="btn-pill" style="background: #f44336; color: white;">Reset password</button>
+        </form>
+        <div th:if="${resetToken}" style="margin-top: 1rem;">
+            <p>Generated Reset Password Link (valid for 24 hours):</p>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="text" th:value="${(baseUrl ?: '') + '/reset-password?token=' + resetToken}" 
+                       id="resetLink" readonly style="flex-grow: 1;"/>
+                <button onclick="copyLink()" class="btn-pill" style="background: #2196F3; color: white;">Copy</button>
+            </div>
+            <script>
+                function copyLink() {
+                    var copyText = document.getElementById("resetLink");
+                    copyText.select();
+                    copyText.setSelectionRange(0, 99999);
+                    navigator.clipboard.writeText(copyText.value);
+                    alert("Link copied to clipboard");
+                }
+            </script>
+        </div>
+    </div>
 </div>
 
 </body>
