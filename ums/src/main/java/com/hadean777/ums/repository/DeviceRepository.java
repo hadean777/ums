@@ -13,4 +13,6 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
     List<Device> findByUserId(Long userId);
     Page<Device> findByUserId(Long userId, Pageable pageable);
     Optional<Device> findByPublicKey(String publicKey);
+    Optional<Device> findByIpAddress(String ipAddress);
+    boolean existsByIpAddress(String ipAddress);
 }

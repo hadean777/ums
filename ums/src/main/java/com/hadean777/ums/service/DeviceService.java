@@ -33,12 +33,12 @@ public class DeviceService {
         this.wireGuardService = wireGuardService;
     }
 
-    public void generateNewDevice(Long userId, String generationMode, String description) throws Exception {
+    public void generateNewDevice(Long userId, String generationMode, String customIp, String description) throws Exception {
         Device device = new Device();
 
-        final boolean isShortIp = "Short IP".equals(generationMode);
+        final boolean isCustomIp = "Custom IP".equals(generationMode);
         short prefixLength = DEFAULT_PREFIX_LENGTH;
-        if (generationMode != null && !isShortIp) {
+        if (generationMode != null && !isCustomIp) {
             try {
                 prefixLength = Short.parseShort(generationMode);
             } catch (NumberFormatException e) {
@@ -54,7 +54,16 @@ public class DeviceService {
         final String publicKey = keyPair.getPublicKey();
         final String privateKey = keyPair.getPrivateKey();
 
-        Ip ip = generateIp(prefixLength, isShortIp);
+        Ip ip;
+        if (isCustomIp) {
+            ip = parseCustomIp(customIp);
+        } else {
+            ip = generateIp(prefixLength);
+        }
+
+        if (deviceRepository.existsByIpAddress(ip.getIpAddress())) {
+            throw new RuntimeException("IP address is exist. Please use another (or try again)");
+        }
 
         device.setUserId(userId);
         device.setDescription(deviceDescription);
@@ -169,7 +178,71 @@ public class DeviceService {
         return pngOutputStream.toByteArray();
     }
 
-    private Ip generateIp(Short prefixLength, boolean isShortIp) {
+    private Ip parseCustomIp(String customIp) throws Exception {
+        if (customIp == null || customIp.trim().isEmpty()) {
+            throw new IllegalArgumentException("IP address cannot be empty");
+        }
+        String input = customIp.trim();
+        String remaining;
+        if (input.startsWith(CUSTOM_IP_PREFIX)) {
+            remaining = input.substring(CUSTOM_IP_PREFIX.length());
+        } else {
+            remaining = input;
+        }
+
+        String fullIpStr;
+        if (remaining.startsWith("::")) {
+            fullIpStr = GLOBAL_PREFIX_STRING + ":1" + remaining;
+        } else if (remaining.startsWith(":")) {
+            fullIpStr = CUSTOM_IP_PREFIX + remaining;
+        } else if (!remaining.contains("::") && remaining.split(":").length < 6) {
+            fullIpStr = CUSTOM_IP_PREFIX + ":" + remaining;
+        } else {
+            fullIpStr = CUSTOM_IP_PREFIX + remaining;
+        }
+
+        InetAddress addr;
+        try {
+            addr = InetAddress.getByName(fullIpStr);
+        } catch (UnknownHostException e) {
+            throw new IllegalArgumentException("Invalid IP address");
+        }
+
+        if (!(addr instanceof Inet6Address inet6Address)) {
+            throw new IllegalArgumentException("Invalid IPv6 address");
+        }
+
+        byte[] bytes = inet6Address.getAddress();
+        int prefix16 = ((bytes[0] & 0xFF) << 8) | (bytes[1] & 0xFF);
+        int prefix32 = ((bytes[2] & 0xFF) << 8) | (bytes[3] & 0xFF);
+        if (prefix16 != GLOBAL_PREFIX_16 || prefix32 != 1) {
+            throw new IllegalArgumentException("IP address must start with " + CUSTOM_IP_PREFIX);
+        }
+
+        int prefix32_48 = ((bytes[4] & 0xFF) << 8) | (bytes[5] & 0xFF);
+        int prefix48_56 = bytes[6] & 0xFF;
+        int prefix56_64 = bytes[7] & 0xFF;
+        long slaac = 0;
+        for (int i = 0; i < 8; i++) {
+            slaac = (slaac << 8) | (bytes[8 + i] & 0xFFL);
+        }
+
+        String ipAddress = toRfc5952(inet6Address);
+
+        Ip ip = new Ip();
+        ip.setPrefixLength((short) DEFAULT_PREFIX_LENGTH);
+        ip.setIpPrefix16(prefix16);
+        ip.setIpPrefix32(prefix32);
+        ip.setIpPrefix32_48(prefix32_48);
+        ip.setIpPrefix48_56(prefix48_56);
+        ip.setIpPrefix56_64(prefix56_64);
+        ip.setIpPrefixSlaac(slaac);
+        ip.setIpAddress(ipAddress);
+
+        return ip;
+    }
+
+    private Ip generateIp(Short prefixLength) {
         Ip ip = new Ip();
 
         Random rand = new Random();
@@ -198,8 +271,6 @@ public class DeviceService {
             prefix48_56 = 0;
             prefix56_64 = 0;
             slaac = 1;
-        } else if (isShortIp) {
-            slaac = rand.nextInt(BYTE_LIMIT);//TODO: use sequence or something similar
         }
 
         prefix32 = prefix32 + rand.nextInt(DEFAULT_PREFIX_32_LIMIT);

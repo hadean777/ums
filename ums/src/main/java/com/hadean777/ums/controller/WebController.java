@@ -17,7 +17,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @Controller
 public class WebController {
@@ -102,13 +101,17 @@ public class WebController {
     @PostMapping("/device/create")
     public String createDevice(Authentication authentication,
                                @RequestParam(required = false) String generationMode,
-                               @RequestParam(required = false) String description) throws Exception {
+                               @RequestParam(required = false) String customIp,
+                               @RequestParam(required = false) String description,
+                               jakarta.servlet.http.HttpServletRequest request,
+                               Model model) throws Exception {
         InternalUserModel userModel = userService.getUserModelByLogin(authentication.getName());
         if (userModel != null) {
             try {
-                deviceService.generateNewDevice(userModel.getUserId(), generationMode, description);
+                deviceService.generateNewDevice(userModel.getUserId(), generationMode, customIp, description);
             } catch (Exception e) {
-                e.printStackTrace();
+                model.addAttribute("errorMessage", e.getMessage());
+                return main(model, authentication, request, 0, 0, "devices-tab");
             }
         }
         return "redirect:/main?tab=devices-tab";

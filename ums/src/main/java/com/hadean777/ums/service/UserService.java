@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.hadean777.ums.Constants.CLIENT_ALLOWED_IPS;
 
@@ -137,9 +136,11 @@ public class UserService implements UserDetailsService {
 
         repository.save(user);
 
+        final boolean userEnabled = user.getEnabled();
+
         // Check if enabled status changed
-        if (user.getId() != null && oldEnabled != null && !oldEnabled.equals(user.getEnabled())) {
-            if (Boolean.FALSE.equals(user.getEnabled())) {
+        if (user.getId() != null && oldEnabled != null && !oldEnabled.equals(userEnabled)) {
+            if (!userEnabled) {
                 // Remove active sessions
                 List<Object> principals = sessionRegistry.getAllPrincipals();
                 for (Object principal : principals) {
@@ -162,11 +163,11 @@ public class UserService implements UserDetailsService {
                         e.printStackTrace();
                     }
                 }
-            } else if (Boolean.TRUE.equals(user.getEnabled())) {
+            } else {
                 // Restore devices on WG side where device.enabled = true
                 List<Device> devices = deviceService.getDevicesForUser(user.getId());
                 for (Device device : devices) {
-                    if (Boolean.TRUE.equals(device.getEnabled())) {
+                    if (device.getEnabled()) {
                         try {
                             wireGuardService.addPeer(device.getPublicKey(), CLIENT_ALLOWED_IPS);
                         } catch (Exception e) {

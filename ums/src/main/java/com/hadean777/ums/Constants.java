@@ -18,6 +18,8 @@ public class Constants {
     public static final int DEFAULT_PREFIX_LENGTH = 128;
 
     public static final String WG_INTERFACE = "wg0";
-    public static final String CLIENT_ALLOWED_IPS = Integer.toHexString(GLOBAL_PREFIX_16) + "::/16";
+    public static final String GLOBAL_PREFIX_STRING = Integer.toHexString(GLOBAL_PREFIX_16);
+    public static final String CLIENT_ALLOWED_IPS = GLOBAL_PREFIX_STRING + "::/16";
+    public static final String CUSTOM_IP_PREFIX = GLOBAL_PREFIX_STRING + ":1:";
 
 }
